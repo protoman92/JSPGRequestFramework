@@ -1,0 +1,33 @@
+{
+  "name": "jspgrequestframework",
+  "version": "1.0.0",
+  "description": "Request framework for POSTGRESQL.",
+  "main": "./dist/src/index.js",
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json"
+    ]
+  },
+  "author": "Hai Pham",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@types/pg": "^7.1.5",
+    "jsrequestframework": "^1.0.4",
+    "pg": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^21.1.5",
+    "jest": "^21.2.1",
+    "ts-jest": "^21.1.4"
+  }
+}
