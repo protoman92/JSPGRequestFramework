@@ -27,7 +27,9 @@
   },
   "devDependencies": {
     "@types/jest": "^21.1.5",
+    "@types/uuid": "^3.4.3",
     "jest": "^21.2.1",
-    "ts-jest": "^21.1.4"
+    "ts-jest": "^21.1.4",
+    "uuid": "^3.1.0"
   }
 }

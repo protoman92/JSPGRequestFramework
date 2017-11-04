@@ -1,7 +1,37 @@
 import { PGRequest } from './../src';
+import * as Models from './models';
 import * as Queries from './queries';
 
-export let createTableRequest = PGRequest.builder()
+export let createUserTableRequest = PGRequest.builder()
   .withQuery(Queries.createUserTableQuery)
   .withRequestDescription('Create user table')
+  .build();
+
+export function createUserRequest(users: Models.TestUser[]): PGRequest.Self {
+  return PGRequest.builder()
+    .withQuery(Queries.createUser(users))
+    .withRequestDescription('Create users')
+    .build();
+}
+
+export let createMachineTableRequest = PGRequest.builder()
+  .withQuery(Queries.createMachineTableQuery)
+  .withRequestDescription('Create machine table')
+  .build();
+
+export function createMachineRequest(machines: Models.Machine[]): PGRequest.Self {
+  return PGRequest.builder()
+    .withQuery(Queries.createMachine(machines))
+    .withRequestDescription('Create machines')
+    .build();
+}
+
+export let dropUserTableRequest = PGRequest.builder()
+  .withQuery(Queries.dropUserTableQuery)
+  .withRequestDescription('Drop user table')
+  .build();
+
+export let dropMachineTableRequest = PGRequest.builder()
+  .withQuery(Queries.dropMachineTableQuery)
+  .withRequestDescription('Drop machine table')
   .build();

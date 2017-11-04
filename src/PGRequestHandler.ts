@@ -4,9 +4,11 @@ import { BuildableType, BuilderType, Try } from 'javascriptutilities';
 
 import {
   RequestGenerator,
+  RequestGenerators,
   RequestHandlerType,
   RequestProcessor,
-  ResultProcessor
+  ResultProcessor,
+  ResultProcessors
 } from 'jsrequestframework';
 
 import * as PGRequest from './PGRequest';
@@ -23,11 +25,29 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
   pgClient?: Client;
   processor?: Processor;
 
-  public builder(): Builder {
+  constructor() {}
+
+  public databaseClient = (): Client => {
+    if (this.pgClient !== undefined) {
+      return this.pgClient;
+    } else {
+      throw new Error('Client cannot be nil');
+    }
+  }
+
+  public requestProcessor = (): Processor => {
+    if (this.processor !== undefined) {
+      return this.processor;
+    } else {
+      throw new Error('Request processor cannot be nil');
+    }
+  }
+
+  public builder = (): Builder => {
     return builder();
   }
 
-  public cloneBuilder(): Builder {
+  public cloneBuilder = (): Builder => {
     return this.builder().withBuildable(this);
   }
 
@@ -36,9 +56,9 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @param  {Req} request A Req instance.
    * @returns Observable An Observable instance.
    */
-  private perform(request: Req): Observable<Try<Res>> {
+  public perform = (request: Req): Observable<Try<Res>> => {
     try {
-      let client = this.client();
+      let client = this.databaseClient();
       let query = request.query();
 
       return Observable
@@ -57,11 +77,11 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @param  {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
    * @returns Observable An Observable instance.
    */
-  public request<Prev,Res2>(
-    previous: Try<Prev>, 
-    generator: RequestGenerator<Prev, Req>, 
-    processor: ResultProcessor<Res,Res2>
-  ): Observable<Try<Res2>> {
+  public request = (
+    previous: Try<any>, 
+    generator: RequestGenerator<any,Req>, 
+    processor: ResultProcessor<Res,any>
+  ): Observable<Try<any>> => {
     try {
       let rqProcessor = this.requestProcessor();
       return rqProcessor.process(previous, generator, this.perform, processor);
@@ -70,20 +90,16 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
     }
   }
 
-  public client(): Client {
-    if (this.pgClient !== undefined) {
-      return this.pgClient;
-    } else {
-      throw new Error('Client cannot be nil');
-    }
-  }
-
-  public requestProcessor(): Processor {
-    if (this.processor !== undefined) {
-      return this.processor;
-    } else {
-      throw new Error('Request processor cannot be nil');
-    }
+  /**
+   * Perform a direct request using a default generator and processor.
+   * @param  {Try<Prev>} previous The result of the previous request.
+   * @param  {Req} request A Req instance.
+   * @returns Observable An Observable instance.
+   */
+  public requestDirect = (previous: Try<any>, request: Req): Observable<Try<Res>> => {
+    let generator = RequestGenerators.forceGn(() => request);
+    let processor = ResultProcessors.eq<Res>()
+    return this.request(previous, generator, processor);
   }
 }
 
@@ -99,7 +115,7 @@ export class Builder implements BuilderType<Self> {
    * @param  {Client} client? A Client instance.
    * @returns this The current Builder instance.
    */
-  public withClient(client?: Client): this {
+  public withClient = (client?: Client): this => {
     this.handler.pgClient = client;
     return this;
   }
@@ -109,12 +125,12 @@ export class Builder implements BuilderType<Self> {
    * @param  {Processor} processor? A RequestProcessor instance.
    * @returns this The current Builder instance.
    */
-  public withRequestProcessor(processor?: Processor): this {
+  public withRequestProcessor = (processor?: Processor): this => {
     this.handler.processor = processor;
     return this;
   }
 
-  public withBuildable(buildable?: Self): this {
+  public withBuildable = (buildable?: Self): this => {
     if (buildable !== undefined) {
       return this
         .withClient(buildable.pgClient)
@@ -124,7 +140,7 @@ export class Builder implements BuilderType<Self> {
     }
   }
 
-  public build(): Self {
+  public build = (): Self => {
     return this.handler;
   }
 }

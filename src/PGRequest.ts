@@ -19,38 +19,40 @@ export class Self implements BuildableType<Builder>, RequestType {
   rqDescription?: string;
 
   constructor() {
+    this.inclFilters = [];
+    this.exclFilters = [];
     this.retryCount = 1;
   }
 
-  public builder(): Builder {
+  public builder = (): Builder => {
     return builder();
   }
 
-  public cloneBuilder(): Builder {
+  public cloneBuilder = (): Builder => {
     return this.builder().withBuildable(this);
   }
 
-  public query(): string {
+  public query = (): string => {
     if (this.pgQuery !== undefined) {
       return this.pgQuery;
     } else {
-      throw new Error('Query cannot be nil');
+      throw new Error(`Query cannot be nil for ${JSON.stringify(this)}`);
     }
   }
 
-  public inclusiveFilters(): Nullable<MiddlewareFilter[]> {
+  public inclusiveFilters = (): Nullable<MiddlewareFilter[]> => {
     return this.inclFilters.length == 0 ? undefined : this.inclFilters;
   }
 
-  public exclusiveFilters(): MiddlewareFilter[] {
+  public exclusiveFilters = (): MiddlewareFilter[] => {
     return this.exclFilters;
   }
 
-  public requestDescription(): string {
+  public requestDescription = (): string => {
     return this.rqDescription || '';
   }
 
-  public requestRetries(): number {
+  public requestRetries = (): number => {
     return this.retryCount;
   }
 }
@@ -67,7 +69,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
    * @param  {string} query? A string value.
    * @returns this The current Builder isntance.
    */
-  public withQuery(query?: string): this {
+  public withQuery = (query?: string): this => {
     this.request.pgQuery = query;
     return this;
   }
@@ -77,7 +79,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
    * @param  {MiddlewareFilter[]} filters An Array of filters.
    * @returns this The current Builder instance.
    */
-  public withInclusiveFilters(filters: MiddlewareFilter[]): this {
+  public withInclusiveFilters = (filters: MiddlewareFilter[]): this => {
     this.request.inclFilters = filters;
     return this;
   }
@@ -87,7 +89,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
    * @param  {MiddlewareFilter[]} filters An Array of filters.
    * @returns this The current Builder instance.
    */
-  public withExclusiveFilters(filters: MiddlewareFilter[]): this {
+  public withExclusiveFilters = (filters: MiddlewareFilter[]): this => {
     this.request.exclFilters = filters;
     return this;
   }
@@ -97,7 +99,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
    * @param  {string} description? A string value.
    * @returns this The current Builder instance.
    */
-  public withRequestDescription(description?: string): this {
+  public withRequestDescription = (description?: string): this => {
     this.request.rqDescription = description;
     return this;
   }
@@ -107,14 +109,15 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
    * @param  {number} retries A number value.
    * @returns this The current Builder instance.
    */
-  public withRequestRetries(retries: number): this {
+  public withRequestRetries = (retries: number): this => {
     this.request.retryCount = retries;
     return this;
   }
 
-  public withBuildable(buildable?: Self): this {
+  public withBuildable = (buildable?: Self): this => {
     if (buildable !== undefined) {
       return this
+        .withQuery(buildable.pgQuery)
         .withInclusiveFilters(buildable.inclFilters)
         .withExclusiveFilters(buildable.exclFilters)
         .withRequestDescription(buildable.rqDescription)
@@ -124,7 +127,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
     }
   }
 
-  public build(): Self {
+  public build = (): Self => {
     return this.request;
   }
 }
