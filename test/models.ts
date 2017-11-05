@@ -6,5 +6,5 @@ export interface TestUser {
 
 export interface Machine {
   id: string;
-  userId: string;
+  userid: string;
 }

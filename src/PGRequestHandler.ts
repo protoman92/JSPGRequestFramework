@@ -57,7 +57,7 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @returns Observable An Observable instance.
    */
   public perform = (request: Req): Observable<Try<Res>> => {
-    try {
+    try { 
       let client = this.databaseClient();
       let query = request.query();
 
@@ -96,9 +96,21 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @param  {Req} request A Req instance.
    * @returns Observable An Observable instance.
    */
-  public requestDirect = (previous: Try<any>, request: Req): Observable<Try<Res>> => {
-    let generator = RequestGenerators.forceGn(() => request);
-    let processor = ResultProcessors.eq<Res>()
+  public requestDirect = (
+    previous: Try<any>, 
+    request: Req | string
+  ): Observable<Try<Res>> => {
+    let generator = RequestGenerators.forceGn(() => {
+      if (typeof request === 'string') { 
+        return PGRequest.builder()
+          .withQuery(request)
+          .withRequestDescription(`Request of query: ${request}`)
+          .build();
+      } else {
+        return request;
+      }
+    });
+    let processor = ResultProcessors.eq<Res>();
     return this.request(previous, generator, processor);
   }
 }

@@ -1,7 +1,7 @@
 import { Client } from 'pg';
 import { Observable } from 'rxjs';
 
-import { Try } from 'javascriptutilities';
+import { Collections, Try, Types } from 'javascriptutilities';
 
 import {
   ErrorHolder,
@@ -13,11 +13,12 @@ import {
 import { PGRequest, PGRequestHandler } from './../src';
 import * as Middlewares from './middlewares';
 import * as Mocks from './mocks';
+import * as Models from './models';
 import * as Requests from './requests';
 
 type Req = PGRequest.Self;
 
-let timeout = 10000;
+let timeout = 5000;
 
 describe('Request handler should be correct', () => {
 
@@ -29,8 +30,7 @@ describe('Request handler should be correct', () => {
     host: 'localhost'
   });
 
-  let rqMiddlewareManager = MiddlewareManager.builder<Req>()
-    .addGlobalSideEffect(console.log)
+  let rqMiddlewareManager = MiddlewareManager.builder<Req>()    
     .addTransform(Middlewares.retryTransformer, Middlewares.retryMiddlewareKey)
     .build();
 
@@ -58,7 +58,7 @@ describe('Request handler should be correct', () => {
   let createMachineTableRequest = Requests.createMachineTableRequest;
   let createMachineRequest = Requests.createMachineRequest(mockData.machines);
 
-  beforeEach(done => {
+  beforeAll(done => {
     Observable.fromPromise(client.connect())
       .map(value => Try.success(value))
       .catchJustReturn(e => Try.failure(e))
@@ -71,7 +71,7 @@ describe('Request handler should be correct', () => {
       .subscribe();
   }, timeout);
 
-  afterEach(done => {
+  afterAll(done => {
     let prev = Try.success({});
 
     Observable
@@ -84,5 +84,64 @@ describe('Request handler should be correct', () => {
       .subscribe()
   }, timeout);
 
-  it('Create and drop tables should work correctly', () => {});
+  it('Perform request fails - should not throw error', done => {
+    /// Setup
+    let request = PGRequest.builder()
+      .withRequestDescription('Empty request')
+      .build();
+
+    /// When & Then
+    handler.requestDirect(Try.success({}), request)
+      .doOnError(fail)
+      .doOnCompleted(done)
+      .subscribe();
+  }, timeout);
+
+  it('Find user by id successfully - should emit correct results', done => {
+    /// Setup
+    let randomUser = Collections.randomElement(mockData.users).getOrThrow();
+    let randomId = randomUser.id;
+    let request = Requests.findUserByIdRequest(randomId);
+
+    /// When & Then
+    handler.requestDirect(Try.success({}), request)
+      .map(value => value.getOrThrow())
+      .doOnNext(result => expect(result.rowCount).toBe(1))
+      .doOnNext(result => {
+        let first = Collections.first(result.rows).getOrThrow();
+        
+        if (Types.isInstance<Models.TestUser>(first, 'id')) {
+          expect(first).toEqual(randomUser);
+        } else {
+          fail('Wrong data');
+        }
+      })
+      .doOnError(fail)
+      .doOnCompleted(done)
+      .subscribe();
+  }, timeout);
+
+  it('Find machines by user successfully - should emit correct results', done => {
+    /// Setup
+    let randomUser = Collections.randomElement(mockData.users).getOrThrow();
+    let machines = mockData.machines.filter(value => value.userid === randomUser.id);
+    let request = Requests.findMachineByUserRequest(randomUser.id);
+
+    /// When & Then
+    handler.requestDirect(Try.success({}), request)
+      .map(value => value.getOrThrow())
+      .doOnNext(result => expect(result.rowCount).toBe(Mocks.machinePerUserCount))
+      .doOnNext(result => {
+        result.rows.forEach(value => {
+          if (Types.isInstance<Models.Machine>(value, 'userid')) {
+            expect(machines).toContainEqual(value);
+          } else {
+            fail('Wrong data');
+          }
+        });
+      })
+      .doOnError(fail)
+      .doOnCompleted(done)
+      .subscribe();
+  }, timeout);
 });

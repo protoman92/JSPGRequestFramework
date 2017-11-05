@@ -17,17 +17,25 @@ export function createUser(users: Models.TestUser[]): string {
 
 export function createMachine(machines: Models.Machine[]): string {
   return `
-    INSERT INTO machine (id, userId) VALUES
-    ${machines.map(machine => `('${machine.id}', '${machine.userId}')`).join(',\n')};
+    INSERT INTO machine (id, userid) VALUES
+    ${machines.map(machine => `('${machine.id}', '${machine.userid}')`).join(',\n')};
   `;
 }
 
 export let createMachineTableQuery = `
   CREATE TABLE IF NOT EXISTS machine (
     id UUID PRIMARY KEY,
-    userId UUID REFERENCES testuser(id)
+    userid UUID REFERENCES testuser(id)
   );
 `;
+
+export function findUserByIdQuery(id: string): string {
+  return `SELECT * from testuser where id='${id}';`;
+}
+
+export function findMachineByUserQuery(id: string): string {
+  return `SELECT * from machine where userid='${id}';`;
+}
 
 export let dropUserTableQuery = `
   DROP TABLE IF EXISTS testuser;

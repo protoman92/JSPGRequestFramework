@@ -1,4 +1,4 @@
-import { Middleware, Transformer } from 'jsrequestframework';
+import { Transformer } from 'jsrequestframework';
 import { PGRequest } from './../src';
 
 export type Req = PGRequest.Self;
@@ -8,8 +8,3 @@ export let retryMiddlewareKey = "AddRetry"
 export let retryTransformer: Transformer<Req> = req => req.cloneBuilder()
   .withRequestRetries(3)
   .build();
-
-export let retryMiddleware = new Middleware(
-  retryMiddlewareKey, 
-  retryTransformer
-);

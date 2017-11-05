@@ -26,6 +26,20 @@ export function createMachineRequest(machines: Models.Machine[]): PGRequest.Self
     .build();
 }
 
+export function findUserByIdRequest(id: string): PGRequest.Self {
+  return PGRequest.builder()
+    .withQuery(Queries.findUserByIdQuery(id))
+    .withRequestDescription(`Find user with id ${id}`)
+    .build();
+}
+
+export function findMachineByUserRequest(id: string): PGRequest.Self {
+  return PGRequest.builder()
+    .withQuery(Queries.findMachineByUserQuery(id))
+    .withRequestDescription(`Find machines by user id ${id}`)
+    .build();
+}
+
 export let dropUserTableRequest = PGRequest.builder()
   .withQuery(Queries.dropUserTableQuery)
   .withRequestDescription('Drop user table')

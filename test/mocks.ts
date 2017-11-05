@@ -19,7 +19,7 @@ export function createDataMocks(): MockDataType {
 
   let machines = users
     .map(user => Numbers.range(0, machinePerUserCount).map(() => ({
-      id: uuid.v4(), userId: user.id
+      id: uuid.v4(), userid: user.id
     })))
     .reduce((x, y) => x.concat(y), []);
 
