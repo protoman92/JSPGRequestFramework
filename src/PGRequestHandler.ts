@@ -77,11 +77,11 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @param  {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
    * @returns Observable An Observable instance.
    */
-  public request = (
-    previous: Try<any>, 
-    generator: RequestGenerator<any,Req>, 
-    processor: ResultProcessor<Res,any>
-  ): Observable<Try<any>> => {
+  public request<Prev,Res2>(
+    previous: Try<Prev>, 
+    generator: RequestGenerator<Prev,Req>, 
+    processor: ResultProcessor<Res,Res2>
+  ): Observable<Try<Res2>> {
     try {
       let rqProcessor = this.requestProcessor();
       return rqProcessor.process(previous, generator, this.perform, processor);
@@ -96,10 +96,10 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
    * @param  {Req} request A Req instance.
    * @returns Observable An Observable instance.
    */
-  public requestDirect = (
-    previous: Try<any>, 
+  public requestDirect<Prev>(
+    previous: Try<Prev>, 
     request: Req | string
-  ): Observable<Try<Res>> => {
+  ): Observable<Try<Res>> {
     let generator = RequestGenerators.forceGn(() => {
       if (typeof request === 'string') { 
         return PGRequest.builder()
@@ -110,6 +110,7 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
         return request;
       }
     });
+
     let processor = ResultProcessors.eq<Res>();
     return this.request(previous, generator, processor);
   }

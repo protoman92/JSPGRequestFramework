@@ -25,7 +25,7 @@ describe('Request handler should be correct', () => {
   // Make sure that this DB exists before running tests.
   let client = new Client({
     user: 'haipham',
-    database: 'testdb',    
+    database: 'haipham',    
     port: 5432,
     host: 'localhost'
   });
@@ -67,7 +67,8 @@ describe('Request handler should be correct', () => {
       .flatMap(prev => handler.requestDirect(prev, createUserRequest))
       .flatMap(prev => handler.requestDirect(prev, createMachineRequest))
       .map(value => value.getOrThrow())
-      .doOnCompleted(done)
+      .doOnError(e => fail(e))
+      .doOnCompleted(() => done())
       .subscribe();
   }, timeout);
 
@@ -80,8 +81,9 @@ describe('Request handler should be correct', () => {
         handler.requestDirect(prev, Requests.dropUserTableRequest)
       )
       .map(value => value.getOrThrow())
-      .doOnCompleted(done)
-      .subscribe()
+      .doOnError(e => fail(e))
+      .doOnCompleted(() => done())
+      .subscribe();
   }, timeout);
 
   it('Perform request fails - should not throw error', done => {
@@ -92,8 +94,8 @@ describe('Request handler should be correct', () => {
 
     /// When & Then
     handler.requestDirect(Try.success({}), request)
-      .doOnError(fail)
-      .doOnCompleted(done)
+      .doOnError(e => fail(e))
+      .doOnCompleted(() => done())
       .subscribe();
   }, timeout);
 
@@ -116,8 +118,8 @@ describe('Request handler should be correct', () => {
           fail('Wrong data');
         }
       })
-      .doOnError(fail)
-      .doOnCompleted(done)
+      .doOnError(e => fail(e))
+      .doOnCompleted(() => done())
       .subscribe();
   }, timeout);
 
@@ -140,8 +142,8 @@ describe('Request handler should be correct', () => {
           }
         });
       })
-      .doOnError(fail)
-      .doOnCompleted(done)
+      .doOnError(e => fail(e))
+      .doOnCompleted(() => done())
       .subscribe();
   }, timeout);
 });
