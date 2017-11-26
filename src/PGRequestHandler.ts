@@ -21,7 +21,24 @@ export function builder(): Builder {
   return new Builder();
 }
 
-export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res> {
+export interface Type {
+  /**
+   * Perform a POSTGRESQL request.
+   * @template Prev The generic of the previous result.
+   * @template Res2 The generic of the final processed result.
+   * @param {Try<Prev>} previous The result of the previous request.
+   * @param {RequestGenerator<Prev,Req>} generator A RequestGenerator instance.
+   * @param {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
+   * @returns {Observable<Try<Res2>>} An Observable instance.
+   */
+  request<Prev,Res2>(
+    previous: Try<Prev>, 
+    generator: RequestGenerator<Prev,Req>, 
+    processor: ResultProcessor<Res,Res2>
+  ): Observable<Try<Res2>>;
+}
+
+export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>, Type {
   pgClient?: Client;
   processor?: Processor;
 
