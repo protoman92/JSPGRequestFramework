@@ -11,12 +11,12 @@ export function builder(): Builder {
 }
 
 export class Self implements BuildableType<Builder>, RequestType {
-  pgQuery?: string;
+  pgQuery: Nullable<string>;
 
   inclFilters: MiddlewareFilter[];
   exclFilters: MiddlewareFilter[];
   retryCount: number;
-  rqDescription?: string;
+  rqDescription: Nullable<string>;
 
   constructor() {
     this.inclFilters = [];
@@ -33,7 +33,7 @@ export class Self implements BuildableType<Builder>, RequestType {
   }
 
   public query = (): string => {
-    if (this.pgQuery !== undefined) {
+    if (this.pgQuery !== undefined && this.pgQuery !== null) {
       return this.pgQuery;
     } else {
       throw new Error(`Query cannot be nil for ${JSON.stringify(this)}`);
@@ -66,10 +66,10 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
   
   /**
    * Set the POSTGRESQL query.
-   * @param  {string} query? A string value.
+   * @param  {Nullable<string>} query A string value.
    * @returns this The current Builder isntance.
    */
-  public withQuery = (query?: string): this => {
+  public withQuery = (query: Nullable<string>): this => {
     this.request.pgQuery = query;
     return this;
   }
@@ -96,10 +96,10 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
 
   /**
    * Set request description.
-   * @param  {string} description? A string value.
+   * @param  {Nullable<string>} description A string value.
    * @returns this The current Builder instance.
    */
-  public withRequestDescription = (description?: string): this => {
+  public withRequestDescription = (description: Nullable<string>): this => {
     this.request.rqDescription = description;
     return this;
   }
@@ -114,8 +114,8 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
     return this;
   }
 
-  public withBuildable = (buildable?: Self): this => {
-    if (buildable !== undefined) {
+  public withBuildable = (buildable: Nullable<Self>): this => {
+    if (buildable !== undefined && buildable !== null) {
       return this
         .withQuery(buildable.pgQuery)
         .withInclusiveFilters(buildable.inclFilters)

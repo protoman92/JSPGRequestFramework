@@ -1,6 +1,6 @@
 import { Client, QueryResult } from 'pg';
 import { Observable } from 'rxjs';
-import { BuildableType, BuilderType, Try } from 'javascriptutilities';
+import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
 
 import {
   RequestGenerator,
@@ -39,13 +39,13 @@ export interface Type {
 }
 
 export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>, Type {
-  pgClient?: Client;
-  processor?: Processor;
+  pgClient: Nullable<Client>;
+  processor: Nullable<Processor>;
 
   constructor() {}
 
   public databaseClient = (): Client => {
-    if (this.pgClient !== undefined) {
+    if (this.pgClient !== undefined && this.pgClient !== null) {
       return this.pgClient;
     } else {
       throw new Error('Client cannot be nil');
@@ -53,7 +53,7 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
   }
 
   public requestProcessor = (): Processor => {
-    if (this.processor !== undefined) {
+    if (this.processor !== undefined && this.processor !== null) {
       return this.processor;
     } else {
       throw new Error('Request processor cannot be nil');
@@ -142,26 +142,26 @@ export class Builder implements BuilderType<Self> {
   
   /**
    * Set the POSTGRESQL client.
-   * @param  {Client} client? A Client instance.
+   * @param  {Nullable<Client>} client A Client instance.
    * @returns this The current Builder instance.
    */
-  public withClient = (client?: Client): this => {
+  public withClient = (client: Nullable<Client>): this => {
     this.handler.pgClient = client;
     return this;
   }
 
   /**
    * Set the request processor.
-   * @param  {Processor} processor? A RequestProcessor instance.
+   * @param  {Nullable<Processor>} processor A RequestProcessor instance.
    * @returns this The current Builder instance.
    */
-  public withRequestProcessor = (processor?: Processor): this => {
+  public withRequestProcessor = (processor: Nullable<Processor>): this => {
     this.handler.processor = processor;
     return this;
   }
 
-  public withBuildable = (buildable?: Self): this => {
-    if (buildable !== undefined) {
+  public withBuildable = (buildable: Nullable<Self>): this => {
+    if (buildable !== undefined && buildable !== null) {
       return this
         .withClient(buildable.pgClient)
         .withRequestProcessor(buildable.processor);
