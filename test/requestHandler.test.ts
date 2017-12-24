@@ -154,7 +154,7 @@ describe('Request handler should be correct', () => {
       }
     };
 
-    handler.streamData<string>(processor)
+    handler.streamData<string>(Try.success({}), processor)
       .mapNonNilOrEmpty(v => v)
       .map(v => v.data)
       .doOnNext(v => expect(newUsers.some(v1 => v1.id === v)).toBeTruthy())

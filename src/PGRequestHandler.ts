@@ -57,19 +57,23 @@ export interface RawQueryType {
 export interface StreamType {
   /**
    * Stream notifications from a trigger.
+   * @param {Try<any>} prev The result of some other request.
    * @returns {Observable<Try<NT.Type>>} An Observable instance.
    */
-  streamNotifications(): Observable<Try<NT.Type>>;
+  streamNotifications(prev: Try<any>): Observable<Try<NT.Type>>;
 }
 
 export interface TypedStreamType {
   /**
    * Stream data of type T from notification payload. 
    * @template T Generic type of the streamed data.
+   * @param {Try<any>} prev The result of some other request.
    * @param {(v: string) => T} processor Data processor.
    * @returns {Observable<Try<NTData.Type<T>>>} An Observable instance.
    */
-  streamData<T>(processor: (v: string) => T): Observable<Try<NTData.Type<T>>>;
+  streamData<T>(
+    prev: Try<any>, processor: (v: string) => T,
+  ): Observable<Try<NTData.Type<T>>>;
 }
 
 export class Self implements
@@ -169,10 +173,12 @@ export class Self implements
   /**
    * Stream data of type T from notification payload. 
    * @template T Generic type of the streamed data.
+   * @param {Try<any>} prev The result of some other request.
    * @returns {Observable<NT.DataType<T>>} An Observable instance.
    */
-  public streamNotifications = (): Observable<Try<NT.Type>> => {
+  public streamNotifications = (prev: Try<any>): Observable<Try<NT.Type>> => {
     try {
+      prev.getOrThrow();
       let client = this.databaseClient();
 
       return new Observable(obs => {
@@ -186,11 +192,14 @@ export class Self implements
   /**
    * Stream data of type T from notification payload. 
    * @template T Generic type of the streamed data.
+   * @param {Try<any>} prev The result of some other request.
    * @param {(v: string) => TryResult<T>} processor Data processor.
    * @returns {Observable<Try<NTData.Type<T>>>} An Observable instance.
    */
-  public streamData<T>(processor: (v: string) => TryResult<T>): Observable<Try<NTData.Type<T>>> { 
-    return this.streamNotifications()
+  public streamData<T>(
+    prev: Try<any>, processor: (v: string) => TryResult<T>,
+  ): Observable<Try<NTData.Type<T>>> { 
+    return this.streamNotifications(prev)
       .map((v): Try<NTData.Type<string>> => v
         .flatMap(v1 => Try.unwrap(v1.payload))
         .zipWith(v, (a, b) => new NTData.Self(b.channel, a, b.processId))

@@ -2,8 +2,8 @@ import * as uuid from 'uuid';
 import { Numbers, Strings } from 'javascriptutilities';
 import * as Models from './models';
 
-export let mockUserCount = 100;
-export let perUserCount = 10;
+export let mockUserCount = 10;
+export let perUserCount = 5;
 
 export interface MockDataType {
   users: Models.TestUser[];
