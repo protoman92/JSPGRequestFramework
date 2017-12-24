@@ -65,8 +65,8 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
   }
   
   /**
-   * Set the POSTGRESQL query.
-   * @param  {Nullable<string>} query A string value.
+   * Set the PG query.
+   * @param {Nullable<string>} query A string value.
    * @returns this The current Builder isntance.
    */
   public withQuery = (query: Nullable<string>): this => {
@@ -76,7 +76,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
 
   /**
    * Set inclusive filters.
-   * @param  {MiddlewareFilter[]} filters An Array of filters.
+   * @param {MiddlewareFilter[]} filters An Array of filters.
    * @returns this The current Builder instance.
    */
   public withInclusiveFilters = (filters: MiddlewareFilter[]): this => {
@@ -86,7 +86,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
   
   /**
    * Set exclusive filters.
-   * @param  {MiddlewareFilter[]} filters An Array of filters.
+   * @param {MiddlewareFilter[]} filters An Array of filters.
    * @returns this The current Builder instance.
    */
   public withExclusiveFilters = (filters: MiddlewareFilter[]): this => {
@@ -96,7 +96,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
 
   /**
    * Set request description.
-   * @param  {Nullable<string>} description A string value.
+   * @param {Nullable<string>} description A string value.
    * @returns this The current Builder instance.
    */
   public withRequestDescription = (description: Nullable<string>): this => {
@@ -106,7 +106,7 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
 
   /**
    * Set retry count.
-   * @param  {number} retries A number value.
+   * @param {number} retries A number value.
    * @returns this The current Builder instance.
    */
   public withRequestRetries = (retries: number): this => {

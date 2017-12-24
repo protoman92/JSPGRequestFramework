@@ -1,6 +1,6 @@
 {
   "name": "jspgrequestframework",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Request framework for POSTGRESQL.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -24,7 +24,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/pg": "^7.1.5",
-    "jsrequestframework": "^1.0.4",
+    "jsrequestframework": "^1.1.3",
     "pg": "^7.3.0"
   },
   "devDependencies": {

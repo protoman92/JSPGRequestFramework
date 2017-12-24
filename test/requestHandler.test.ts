@@ -1,49 +1,49 @@
 import { Client } from 'pg';
 import { Observable } from 'rxjs';
-
 import { Collections, Try, Types } from 'javascriptutilities';
 
 import {
   ErrorHolder,
   MiddlewareManager,
   RequestExecutor,
-  RequestProcessor
+  RequestProcessor,
 } from 'jsrequestframework';
 
-import { PGRequest, PGRequestHandler } from './../src';
+import { PGRequest as Req, PGRequestHandler } from './../src';
 import * as Middlewares from './middlewares';
 import * as Mocks from './mocks';
 import * as Models from './models';
-import * as Requests from './requests';
+import * as Queries from './queries';
 
-type Req = PGRequest.Self;
-
-let timeout = 5000;
+let timeout = 2000;
 
 describe('Request handler should be correct', () => {
 
   // Make sure that this DB exists before running tests.
   let client = new Client({
     user: 'haipham',
-    database: 'haipham',    
+    database: 'testdb',
     port: 5432,
-    host: 'localhost'
+    host: 'localhost',
   });
 
-  let rqMiddlewareManager = MiddlewareManager.builder<Req>()    
+  let rqMiddlewareManager = MiddlewareManager
+    .builder<Req.Self>()    
     .addTransform(Middlewares.retryTransformer, Middlewares.retryMiddlewareKey)
+    .addSideEffect(v => console.log(v.pgQuery), 'LogQuery')
     .build();
 
-  let errMiddlewareManager = MiddlewareManager.builder<ErrorHolder.Self>()
+  let errMiddlewareManager = MiddlewareManager
+    .builder<ErrorHolder.Self>()
     .addGlobalSideEffect(console.log)
     .build();
 
-  let executor = RequestExecutor.builder<Req>()
+  let executor = RequestExecutor.builder<Req.Self>()
     .withRequestMiddlewareManager(rqMiddlewareManager)
     .withErrorMiddlewareManager(errMiddlewareManager)
     .build();
 
-  let processor = RequestProcessor.builder<Req>()
+  let processor = RequestProcessor.builder<Req.Self>()
     .withExecutor(executor)
     .build();
 
@@ -52,35 +52,26 @@ describe('Request handler should be correct', () => {
     .withRequestProcessor(processor)
     .build();
 
-  let mockData = Mocks.createDataMocks();
-  let createUserTableRequest = Requests.createUserTableRequest;
-  let createUserRequest = Requests.createUserRequest(mockData.users);
-  let createMachineTableRequest = Requests.createMachineTableRequest;
-  let createMachineRequest = Requests.createMachineRequest(mockData.machines);
+  let mockData = Mocks.createData();
+  let users = mockData.users;
+  let machines = mockData.machines;
 
   beforeAll(done => {
     Observable.fromPromise(client.connect())
       .map(value => Try.success(value))
       .catchJustReturn(e => Try.failure(e))
-      .flatMap(prev => handler.requestDirect(prev, createUserTableRequest))
-      .flatMap(prev => handler.requestDirect(prev, createMachineTableRequest))      
-      .flatMap(prev => handler.requestDirect(prev, createUserRequest))
-      .flatMap(prev => handler.requestDirect(prev, createMachineRequest))
-      .map(value => value.getOrThrow())
-      .doOnError(e => fail(e))
-      .doOnCompleted(() => done())
-      .subscribe();
-  }, timeout);
-
-  afterAll(done => {
-    let prev = Try.success({});
-
-    Observable
-      .concat(
-        handler.requestDirect(prev, Requests.dropMachineTableRequest),
-        handler.requestDirect(prev, Requests.dropUserTableRequest)
-      )
-      .map(value => value.getOrThrow())
+      .flatMap(v => handler.requestRaw(v, Queries.remoteUserTrigger))
+      .flatMap(v => handler.requestRaw(v, Queries.removeUserNotification))
+      .flatMap(v => handler.requestRaw(v, Queries.dropMachineTable))
+      .flatMap(v => handler.requestRaw(v, Queries.dropUserTable))
+      .flatMap(v => handler.requestRaw(v, Queries.createUserTable))
+      .flatMap(v => handler.requestRaw(v, Queries.createMachineTable))      
+      .flatMap(v => handler.requestRaw(v, Queries.createUser(users)))
+      .flatMap(v => handler.requestRaw(v, Queries.createMachine(machines)))
+      .flatMap(v => handler.requestRaw(v, Queries.insertUserNotification))
+      .flatMap(v => handler.requestRaw(v, Queries.insertUserTrigger))
+      .flatMap(v => handler.requestRaw(v, Queries.listenInsertUser))
+      .map(v => v.getOrThrow())
       .doOnError(e => fail(e))
       .doOnCompleted(() => done())
       .subscribe();
@@ -88,12 +79,10 @@ describe('Request handler should be correct', () => {
 
   it('Perform request fails - should not throw error', done => {
     /// Setup
-    let request = PGRequest.builder()
-      .withRequestDescription('Empty request')
-      .build();
+    let request = Req.builder().withRequestDescription('Empty request').build();
 
     /// When & Then
-    handler.requestDirect(Try.success({}), request)
+    handler.requestRaw(Try.success({}), request)
       .doOnError(e => fail(e))
       .doOnCompleted(() => done())
       .subscribe();
@@ -103,11 +92,11 @@ describe('Request handler should be correct', () => {
     /// Setup
     let randomUser = Collections.randomElement(mockData.users).getOrThrow();
     let randomId = randomUser.id;
-    let request = Requests.findUserByIdRequest(randomId);
+    let request = Queries.findUserById(randomId);
 
     /// When & Then
-    handler.requestDirect(Try.success({}), request)
-      .map(value => value.getOrThrow())
+    handler.requestRaw(Try.success({}), request)
+      .map(value => value.getOrThrow())      
       .doOnNext(result => expect(result.rowCount).toBe(1))
       .doOnNext(result => {
         let first = Collections.first(result.rows).getOrThrow();
@@ -123,16 +112,16 @@ describe('Request handler should be correct', () => {
       .subscribe();
   }, timeout);
 
-  it('Find machines by user successfully - should emit correct results', done => {
+  it('Find machines by user - should emit correct results', done => {
     /// Setup
     let randomUser = Collections.randomElement(mockData.users).getOrThrow();
     let machines = mockData.machines.filter(value => value.userid === randomUser.id);
-    let request = Requests.findMachineByUserRequest(randomUser.id);
+    let request = Queries.findMachineByUser(randomUser.id);
 
     /// When & Then
-    handler.requestDirect(Try.success({}), request)
+    handler.requestRaw(Try.success({}), request)
       .map(value => value.getOrThrow())
-      .doOnNext(result => expect(result.rowCount).toBe(Mocks.machinePerUserCount))
+      .doOnNext(result => expect(result.rowCount).toBe(Mocks.perUserCount))
       .doOnNext(result => {
         result.rows.forEach(value => {
           if (Types.isInstance<Models.Machine>(value, ['userid'])) {
@@ -144,6 +133,47 @@ describe('Request handler should be correct', () => {
       })
       .doOnError(e => fail(e))
       .doOnCompleted(() => done())
+      .subscribe();
+  }, timeout);
+
+  it('Insert user successfully - should trigger notification', done => {
+    /// Setup
+    let newMocks = Mocks.createData();
+    let newUsers = newMocks.users;
+    let newMachines = newMocks.machines;
+    let notificationCount = 0;
+    let prev = Try.success({});
+
+    let processor: (v: string) => string = v => {
+      let json = JSON.parse(v);
+
+      if (json.id !== undefined && json.id !== null) {
+        return json.id;
+      } else {
+        throw Error('No id found');
+      }
+    };
+
+    handler.streamData<string>(processor)
+      .mapNonNilOrEmpty(v => v)
+      .map(v => v.data)
+      .doOnNext(v => expect(newUsers.some(v1 => v1.id === v)).toBeTruthy())
+      .doOnNext(() => notificationCount += 1)
+      .doOnNext(() => {
+        if (notificationCount === newUsers.length) {
+          done();
+        }
+      })
+      .subscribe();
+
+    /// When
+    Observable
+      .merge(
+        handler.requestRaw(prev, Queries.createUser(newUsers)),
+        handler.requestRaw(prev, Queries.createMachine(newMachines)),
+      )
+      .map(v => v.map(v1 => v1.rows).getOrElse([]))
+      .reduce((a, b) => a.concat(b), [])
       .subscribe();
   }, timeout);
 });

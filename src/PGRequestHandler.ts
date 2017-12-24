@@ -1,6 +1,13 @@
-import { Client, QueryResult } from 'pg';
+import { Client, QueryResult as Res } from 'pg';
 import { Observable } from 'rxjs';
-import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
+
+import {
+  BuildableType,
+  BuilderType,
+  Nullable,
+  Try,
+  TryResult,
+} from 'javascriptutilities';
 
 import {
   RequestGenerator,
@@ -8,41 +15,73 @@ import {
   RequestHandlerType,
   RequestProcessor,
   ResultProcessor,
-  ResultProcessors
+  ResultProcessors,
 } from 'jsrequestframework';
 
-import * as PGRequest from './PGRequest';
+import * as Req from './PGRequest';
+import * as NT from './PGNotification';
+import * as NTData from './PGNotificationData';
 
-export type Res = QueryResult;
-export type Req = PGRequest.Self;
-export type Processor = RequestProcessor.Self<Req>;
+export type Processor = RequestProcessor.Self<Req.Self>;
 
-export function builder(): Builder {
-  return new Builder();
-}
+export let builder = (): Builder => new Builder();
 
 export interface Type {
   /**
-   * Perform a POSTGRESQL request.
+   * Perform a PG request.
    * @template Prev The generic of the previous result.
    * @template Res2 The generic of the final processed result.
    * @param {Try<Prev>} previous The result of the previous request.
-   * @param {RequestGenerator<Prev,Req>} generator A RequestGenerator instance.
+   * @param {RequestGenerator<Prev,Req.Self>} generator A RequestGenerator instance.
    * @param {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
    * @returns {Observable<Try<Res2>>} An Observable instance.
    */
   request<Prev,Res2>(
     previous: Try<Prev>, 
-    generator: RequestGenerator<Prev,Req>, 
+    generator: RequestGenerator<Prev,Req.Self>, 
     processor: ResultProcessor<Res,Res2>
   ): Observable<Try<Res2>>;
 }
 
-export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>, Type {
-  pgClient: Nullable<Client>;
-  processor: Nullable<Processor>;
+export interface RawQueryType {
+  /**
+   * Perform a direct PG request by using a default request generator
+   * and result processor..
+   * @param {Try<Prev>} previous The result of the previous request.
+   * @param {(Req.Self | string)} request A request query/object.
+   * @returns {Observable<Try<Res>>} An Observable instance.
+   */
+  requestRaw<Prev>(previous: Try<Prev>, request: Req.Self | string): Observable<Try<Res>>;
+}
 
-  constructor() {}
+export interface StreamType {
+  /**
+   * Stream notifications from a trigger.
+   * @returns {Observable<Try<NT.Type>>} An Observable instance.
+   */
+  streamNotifications(): Observable<Try<NT.Type>>;
+}
+
+export interface TypedStreamType {
+  /**
+   * Stream data of type T from notification payload. 
+   * @template T Generic type of the streamed data.
+   * @param {(v: string) => T} processor Data processor.
+   * @returns {Observable<Try<NTData.Type<T>>>} An Observable instance.
+   */
+  streamData<T>(processor: (v: string) => T): Observable<Try<NTData.Type<T>>>;
+}
+
+export class Self implements
+  BuildableType<Builder>,
+  RequestHandlerType<Req.Self,Res>,
+  Type, RawQueryType,
+  StreamType, TypedStreamType
+{
+  public pgClient: Nullable<Client>;
+  public processor: Nullable<Processor>;
+
+  public constructor() {}
 
   public databaseClient = (): Client => {
     if (this.pgClient !== undefined && this.pgClient !== null) {
@@ -60,20 +99,16 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
     }
   }
 
-  public builder = (): Builder => {
-    return builder();
-  }
+  public builder = (): Builder => builder();
 
-  public cloneBuilder = (): Builder => {
-    return this.builder().withBuildable(this);
-  }
+  public cloneBuilder = (): Builder => this.builder().withBuildable(this);
 
   /**
-   * Perform a POSTGRESQL request.
-   * @param  {Req} request A Req instance.
+   * Perform a PG request.
+   * @param {Req.Self} request A Req.Self instance.
    * @returns Observable An Observable instance.
    */
-  public perform = (request: Req): Observable<Try<Res>> => {
+  public perform = (request: Req.Self): Observable<Try<Res>> => {
     try { 
       let client = this.databaseClient();
       let query = request.query();
@@ -81,22 +116,22 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
       return Observable
         .fromPromise(client.query(query))
         .map(value => Try.success(value))
-        .catchJustReturn(e => Try.failure(e));
+        .catchJustReturn(e => Try.failure<Res>(e));
     } catch (e) {
       return Observable.of(Try.failure(e));
     }
   }
 
   /**
-   * Perform a POSTGRESQL request.
-   * @param  {Try<Prev>} previous The result of the previous request.
-   * @param  {RequestGenerator<Prev,Req>} generator A RequestGenerator instance.
-   * @param  {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
+   * Perform a PG request.
+   * @param {Try<Prev>} previous The result of the previous request.
+   * @param {RequestGenerator<Prev,Req.Self>} generator A RequestGenerator instance.
+   * @param {ResultProcessor<Res,Res2>} processor A ResultProcessor instance.
    * @returns Observable An Observable instance.
    */
   public request<Prev,Res2>(
     previous: Try<Prev>, 
-    generator: RequestGenerator<Prev,Req>, 
+    generator: RequestGenerator<Prev,Req.Self>, 
     processor: ResultProcessor<Res,Res2>
   ): Observable<Try<Res2>> {
     try {
@@ -109,17 +144,16 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
 
   /**
    * Perform a direct request using a default generator and processor.
-   * @param  {Try<Prev>} previous The result of the previous request.
-   * @param  {Req} request A Req instance.
+   * @param {Try<Prev>} previous The result of the previous request.
+   * @param {Req.Self} request A Req.Self instance.
    * @returns Observable An Observable instance.
    */
-  public requestDirect<Prev>(
-    previous: Try<Prev>, 
-    request: Req | string
+  public requestRaw<Prev>(
+    previous: Try<Prev>, request: Req.Self | string,
   ): Observable<Try<Res>> {
     let generator = RequestGenerators.forceGn(() => {
       if (typeof request === 'string') { 
-        return PGRequest.builder()
+        return Req.builder()
           .withQuery(request)
           .withRequestDescription(`Request of query: ${request}`)
           .build();
@@ -131,19 +165,52 @@ export class Self implements BuildableType<Builder>, RequestHandlerType<Req,Res>
     let processor = ResultProcessors.eq<Res>();
     return this.request(previous, generator, processor);
   }
+
+  /**
+   * Stream data of type T from notification payload. 
+   * @template T Generic type of the streamed data.
+   * @returns {Observable<NT.DataType<T>>} An Observable instance.
+   */
+  public streamNotifications = (): Observable<Try<NT.Type>> => {
+    try {
+      let client = this.databaseClient();
+
+      return new Observable(obs => {
+        client.on('notification', v => obs.next(Try.success(new NT.Self(v))));
+      });
+    } catch (e) {
+      return Observable.of(Try.failure(e));
+    }
+  }
+
+  /**
+   * Stream data of type T from notification payload. 
+   * @template T Generic type of the streamed data.
+   * @param {(v: string) => TryResult<T>} processor Data processor.
+   * @returns {Observable<Try<NTData.Type<T>>>} An Observable instance.
+   */
+  public streamData<T>(processor: (v: string) => TryResult<T>): Observable<Try<NTData.Type<T>>> { 
+    return this.streamNotifications()
+      .map((v): Try<NTData.Type<string>> => v
+        .flatMap(v1 => Try.unwrap(v1.payload))
+        .zipWith(v, (a, b) => new NTData.Self(b.channel, a, b.processId))
+      )
+      .map(v => v.map(v1 => v1.map(v2 => processor(v2))))
+      .map(v => v.map(v1 => v1.map(v2 => Try.unwrap(v2).getOrThrow())));
+  }
 }
 
 export class Builder implements BuilderType<Self> {
   private handler: Self;
 
-  constructor() {
+  public constructor() {
     this.handler = new Self();
   }
   
   /**
-   * Set the POSTGRESQL client.
-   * @param  {Nullable<Client>} client A Client instance.
-   * @returns this The current Builder instance.
+   * Set the PG client.
+   * @param {Nullable<Client>} client A Client instance.
+   * @returns {this} The current Builder instance.
    */
   public withClient = (client: Nullable<Client>): this => {
     this.handler.pgClient = client;
@@ -152,8 +219,8 @@ export class Builder implements BuilderType<Self> {
 
   /**
    * Set the request processor.
-   * @param  {Nullable<Processor>} processor A RequestProcessor instance.
-   * @returns this The current Builder instance.
+   * @param {Nullable<Processor>} processor A RequestProcessor instance.
+   * @returns {this} The current Builder instance.
    */
   public withRequestProcessor = (processor: Nullable<Processor>): this => {
     this.handler.processor = processor;
@@ -170,7 +237,5 @@ export class Builder implements BuilderType<Self> {
     }
   }
 
-  public build = (): Self => {
-    return this.handler;
-  }
+  public build = (): Self => this.handler;
 }

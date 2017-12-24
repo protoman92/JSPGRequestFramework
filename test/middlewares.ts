@@ -6,5 +6,4 @@ export type Req = PGRequest.Self;
 export let retryMiddlewareKey = "AddRetry"
 
 export let retryTransformer: Transformer<Req> = req => req.cloneBuilder()
-  .withRequestRetries(3)
-  .build();
+  .withRequestRetries(3).build();

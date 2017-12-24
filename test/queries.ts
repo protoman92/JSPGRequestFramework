@@ -1,6 +1,6 @@
 import * as Models from './models';
 
-export let createUserTableQuery = `
+export let createUserTable = `
   CREATE TABLE IF NOT EXISTS testuser (
     id UUID PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -11,36 +11,54 @@ export let createUserTableQuery = `
 export function createUser(users: Models.TestUser[]): string {
   return `
     INSERT INTO testuser (id, name, age) VALUES
-    ${users.map(user => `('${user.id}', '${user.name}', ${user.age})`).join(',\n')};
+    ${users.map(v => `('${v.id}', '${v.name}', ${v.age})`).join(',\n')};
   `;
 }
 
 export function createMachine(machines: Models.Machine[]): string {
   return `
     INSERT INTO machine (id, userid) VALUES
-    ${machines.map(machine => `('${machine.id}', '${machine.userid}')`).join(',\n')};
+    ${machines.map(v => `('${v.id}', '${v.userid}')`).join(',\n')};
   `;
 }
 
-export let createMachineTableQuery = `
+export let createMachineTable = `
   CREATE TABLE IF NOT EXISTS machine (
     id UUID PRIMARY KEY,
     userid UUID REFERENCES testuser(id)
   );
 `;
 
-export function findUserByIdQuery(id: string): string {
+export function findUserById(id: string): string {
   return `SELECT * from testuser where id='${id}';`;
 }
 
-export function findMachineByUserQuery(id: string): string {
+export function findMachineByUser(id: string): string {
   return `SELECT * from machine where userid='${id}';`;
 }
 
-export let dropUserTableQuery = `
-  DROP TABLE IF EXISTS testuser;
-`
+export let dropUserTable = `DROP TABLE IF EXISTS testuser;`;
+export let dropMachineTable = `DROP TABLE IF EXISTS machine;`;
 
-export let dropMachineTableQuery = `
-  DROP TABLE IF EXISTS machine;
+export let insertUserNotification = `
+  CREATE OR REPLACE 
+  FUNCTION notify_user() RETURNS trigger AS 
+  $$
+  BEGIN
+    PERFORM pg_notify('watchers', '{"id":"' || NEW.id || '"}');
+    RETURN new;
+  END; 
+  $$
+  LANGUAGE PLPGSQL;
 `;
+
+export let insertUserTrigger = `
+  CREATE TRIGGER update_user
+  BEFORE INSERT ON testuser
+  FOR EACH ROW EXECUTE PROCEDURE
+  notify_user();
+`;
+
+export let listenInsertUser = `LISTEN watchers`;
+export let removeUserNotification = `DROP FUNCTION IF EXISTS notify_user();`;
+export let remoteUserTrigger = `DROP TRIGGER IF EXISTS update_user ON testuser;`;
