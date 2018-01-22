@@ -61,4 +61,4 @@ export let insertUserTrigger = `
 
 export let listenInsertUser = `LISTEN watchers`;
 export let removeUserNotification = `DROP FUNCTION IF EXISTS notify_user();`;
-export let remoteUserTrigger = `DROP TRIGGER IF EXISTS update_user ON testuser;`;
+export let removeUserTrigger = `DROP TRIGGER IF EXISTS update_user ON testuser;`;

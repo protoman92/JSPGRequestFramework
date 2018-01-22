@@ -30,7 +30,6 @@ describe('Request handler should be correct', () => {
   let rqMiddlewareManager = MiddlewareManager
     .builder<Req.Self>()    
     .addTransform(Middlewares.retryTransformer, Middlewares.retryMiddlewareKey)
-    .addSideEffect(v => console.log(v.pgQuery), 'LogQuery')
     .build();
 
   let errMiddlewareManager = MiddlewareManager
@@ -60,17 +59,20 @@ describe('Request handler should be correct', () => {
     Observable.fromPromise(client.connect())
       .map(value => Try.success(value))
       .catchJustReturn(e => Try.failure(e))
-      .flatMap(v => handler.requestRaw(v, Queries.remoteUserTrigger))
-      .flatMap(v => handler.requestRaw(v, Queries.removeUserNotification))
       .flatMap(v => handler.requestRaw(v, Queries.dropMachineTable))
       .flatMap(v => handler.requestRaw(v, Queries.dropUserTable))
       .flatMap(v => handler.requestRaw(v, Queries.createUserTable))
       .flatMap(v => handler.requestRaw(v, Queries.createMachineTable))      
       .flatMap(v => handler.requestRaw(v, Queries.createUser(users)))
       .flatMap(v => handler.requestRaw(v, Queries.createMachine(machines)))
+      .flatMap(v => handler.requestRaw(v, Queries.removeUserTrigger))
+      .flatMap(v => handler.requestRaw(v, Queries.removeUserNotification))
       .flatMap(v => handler.requestRaw(v, Queries.insertUserNotification))
       .flatMap(v => handler.requestRaw(v, Queries.insertUserTrigger))
       .flatMap(v => handler.requestRaw(v, Queries.listenInsertUser))
+      .map(v => v.map(() => {}))
+      .logNext(() => 'Result of beforeAll is:')
+      .logNext()
       .map(v => v.getOrThrow())
       .doOnError(e => fail(e))
       .doOnCompleted(() => done())
