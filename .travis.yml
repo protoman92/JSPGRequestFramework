@@ -1,0 +1,15 @@
+language: nodejs
+
+services:
+  - postgresql
+
+before_script:
+  - psql -c 'create database testdb;' -U postgres
+  - npm run setup
+  - npm run build
+
+script:
+  - npm run test
+
+after_success:
+  - npm pack

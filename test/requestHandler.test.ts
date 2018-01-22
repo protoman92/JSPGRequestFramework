@@ -101,7 +101,7 @@ describe('Request handler should be correct', () => {
       .doOnNext(result => {
         let first = Collections.first(result.rows).getOrThrow();
         
-        if (Types.isInstance<Models.TestUser>(first, ['id'])) {
+        if (Types.isInstance<Models.TestUser>(first, 'id')) {
           expect(first).toEqual(randomUser);
         } else {
           fail('Wrong data');
@@ -124,7 +124,7 @@ describe('Request handler should be correct', () => {
       .doOnNext(result => expect(result.rowCount).toBe(Mocks.perUserCount))
       .doOnNext(result => {
         result.rows.forEach(value => {
-          if (Types.isInstance<Models.Machine>(value, ['userid'])) {
+          if (Types.isInstance<Models.Machine>(value, 'userid')) {
             expect(machines).toContainEqual(value);
           } else {
             fail('Wrong data');
