@@ -8,7 +8,7 @@
   "scripts": {
     "setup": "npm install",
     "build": "tsc",
-    "test": "tsc && jest"
+    "test": "tsc && jest --forceExit"
   },
   "jest": {
     "transform": {
