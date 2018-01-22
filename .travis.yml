@@ -5,6 +5,7 @@ services:
 
 before_script:
   - psql -c 'create database testdb;' -U postgres
+  - psql -c "CREATE USER haipham;" -U postgres
   - npm run setup
   - npm run build
 
